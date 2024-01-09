@@ -93,6 +93,7 @@ def plot_results(train, test, predictions, method_name):
     plt.legend()
     plt.show()
 
+
 # Main script
 if __name__ == "__main__":
     # Replace 'your_time_series_data' with your actual time series data
