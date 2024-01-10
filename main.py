@@ -24,7 +24,10 @@ def read_data():
     parser = argparse.ArgumentParser(description="Supply Chain Management")
     parser.add_argument('--nw', type=int, help='Number of warehouses (default: 1)', default=1)
     parser.add_argument('--mb', type=int, help='Budget in USD (default: $1000000)', default=1000000)
-    parser.add_argument('--mc', type=int, help='Capacity in containers (1000)', default=1000)
+    parser.add_argument('--mc', type=int, help='Capacity in containers (default: 1000)', default=1000)
+    parser.add_argument('--w1', type=int, help='Weight for objective 1 (default: 1)', default=1)
+    parser.add_argument('--w2', type=int, help='Weight for objective 2 (default: 1)', default=1)
+    parser.add_argument('--w3', type=int, help='Weight for objective 3 (default: 1)', default=1)
     parser.add_argument('--out', type=str, help='Output file name', default="output.csv")
 
 
@@ -108,7 +111,10 @@ def read_data():
         "revenue": param_revenue,
         "budget": param_mb,
         "transport_cost": param_trans_cost,
-        "out": args.out
+        "out": args.out,
+        "w1": args.w1,
+        "w2": args.w2,
+        "w3": args.w3
     }
 
     return model_data
@@ -130,9 +136,9 @@ def main():
 
     # Create the model parameters
     w = Parameter(m, name='w', domain=i, description='Weights for product i', records=model_data["w"])
-    d = Parameter(m, name='d', domain=[j, k], description='Distance from city j to exporting hub k', records=model_data["d"])
+    # d = Parameter(m, name='d', domain=[j, k], description='Distance from city j to exporting hub k', records=model_data["d"])
     q = Parameter(m, name='q', domain=[i, j], description='Quality of product i in city j', records=model_data["q"])
-    v = Parameter(m, name='v', domain=i, description='Volume of product i', records=model_data["v"])
+    # v = Parameter(m, name='v', domain=i, description='Volume of product i', records=model_data["v"])
     p_cap = Parameter(m, name='p_cap', domain=[i, j], description='Production Capacity of product i in city j', records=model_data["cap"])
     wn = Parameter(m, name='wn', description='Maximum number of warehouses', records=model_data["wn"])
     m_cap = Parameter(m, name='m_cap', description='Maximum capacity of warehouses', records=model_data["mc"])
@@ -155,8 +161,8 @@ def main():
 
     # Define the model equations
     obj1 = Equation(m, name='obj1', description='Maximize the total products value')
-    obj2 = Equation(m, name='obj2', description='Minimize the total distance')
-    obj3 = Equation(m, name='obj3', description='Maximize the total products quality')
+    obj2 = Equation(m, name='obj2', description='Maximize the total products quality')
+    obj3 = Equation(m, name='obj3', description='Maximize the total profit')
 
     weighted_obj = Equation(m, name='weighted_obj', description='Weighted objective function')
 
@@ -181,7 +187,7 @@ def main():
     obj3[...] = o3 == Sum([i, j], revenue[i] * y[i, j]) - Sum(j, wc[j] * x[j]) - Sum([i, j, k], transport_cost[j, k] * y[i, j])
 
     # Weighted objective function
-    weighted_obj[...] = o_all == (1*o1) - (10000*o2) + (100000*o3)
+    weighted_obj[...] = o_all == (model_data["w1"]*o1) - (model_data["w1"]*o2) + (model_data["w1"]*o3)
 
 
     # CONSTRAINTS

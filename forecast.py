@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 from sklearn.metrics import mean_squared_error
 from statsmodels.tsa.holtwinters import ExponentialSmoothing
 from sklearn.linear_model import LinearRegression
@@ -21,7 +22,7 @@ def sma_forecast(train, test):
     history = list(train)
     predictions = []
     for t in range(len(test)):
-        yhat = np.mean(history)
+        yhat = np.mean(history[-3:])
         predictions.append(yhat)
         history.append(test[t])
     return predictions
@@ -96,18 +97,45 @@ def plot_results(train, test, predictions, method_name):
 
 # Main script
 if __name__ == "__main__":
-    # Replace 'your_time_series_data' with your actual time series data
-    time_series_data = [3130, 5854, 7697, 11000, 12084, 15453, 10433, 12873, 15890, 15768, 18232, 18103, 10270, 9858, 11249, 13030, 14448, 12513, 16213, 17028]
 
-    train_size = 14
-    train, test = split_data(time_series_data, train_size)
+    data = pd.read_excel("data/final_exports.xlsx", "Sheet1", index_col=None)
 
-    best_method = choose_best_method(train, test)
-    best_predictions = best_method(train, test)
+    all_data = {}
+    for col in data.columns:
+        all_data[col] = data[col].tolist()
+    data.columns = all_data.keys()
+    time = np.arange(2003, 2023)
 
-    print(f"Best forecasting method: {best_method.__name__}")
-    print(f"Predictions: {best_predictions}")
-    print(f"Mean Squared Error: {calculate_rmse(test, best_predictions)}")
+    # Plotting the time series
+    fig, axs = plt.subplots(5, 3, figsize=(20, 16), sharex=True, sharey=None)
+    fig.suptitle("Export trend of 15 different products HS codes")
 
-    # Plotting results
-    plot_results(train, test, best_predictions, best_method.__name__)
+    # Flatten the axs array for easier iteration
+    axs = axs.flatten()
+
+    idx = 0
+    for hs, i in all_data.items():
+        time_series_data = i
+
+        train_size = 14
+        train, test = split_data(time_series_data, train_size)
+
+        best_method = choose_best_method(train, test)
+        best_predictions = best_method(train, test)
+
+        axs[idx].plot(np.arange(len(train)), train, label='Train Data')
+        axs[idx].plot(np.arange(len(train), len(train) + len(test)), test, label='Test Data', linestyle="-.")
+        axs[idx].plot(np.arange(len(train), len(train) + len(test)), best_predictions, label=f'{best_method.__name__} Predictions', linestyle="--")
+
+
+        axs[idx].legend()
+        axs[idx].set_xlabel("Time")
+        axs[idx].set_ylabel("Exports in $1000")
+
+        idx += 1
+
+    # Adjust layout to prevent clipping of labels
+    plt.tight_layout(rect=[0, 0.03, 1, 0.95])
+
+    # Show the plot
+    plt.show()
